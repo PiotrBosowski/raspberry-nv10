@@ -94,11 +94,11 @@ int wait_for(int pin_number, int state, int timeout_allowed)
   printf("Done waiting. Result: ");
   printf("%s", stable_state_counter == 0 ? "GOOD" : "TIMEOUT");
   printf("\n");
-  if(stable_state_counter == 0) return true; // stable state has been achieved
-  else return false; // return false in case of timeout
+  if(stable_state_counter == 0) return 1; // stable state has been achieved
+  else return 0; // return 0 in case of timeout
 }
 
-int pay(Nominals nominal)
+int pay(int nominal)
 {
   printf("Initializing payment of ");
   printf("%s", nominalsValues[nominal]);
