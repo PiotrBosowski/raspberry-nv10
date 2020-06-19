@@ -54,6 +54,7 @@ gpio=27,22,10,9=op,dh
  */
  
 #include <wiringPi.h>
+#include <stdio.h>
  
 #define ACCEPTED_1 2
 #define ACCEPTED_2 3
