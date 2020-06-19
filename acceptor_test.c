@@ -1,5 +1,18 @@
 /* 
- * Controlling NV10 Banknote Acceptor using Arduino Uno
+ *
+
+before any use, add following lines to /boot/config.txt
+
+#setting input pins with pull up
+gpio=2,3,4,17=ip,pu
+
+#setting output pins with value high
+gpio=27,22,10,9=op,dh
+
+to make Pi configure its gpios during startup
+
+ 
+ Controlling NV10 Banknote Acceptor using Raspberry Pi 2B
  * reference: http://www.coinoperatorshop.com/media/products/manual/NV/NV10%20_Manual%20Englisch.pdf
  * 
  * NV10 interface: Parallel (all dipswitches should be DOWN)
@@ -21,36 +34,33 @@
  * 7 (INPUT) - inhibit 3 - HIGH prevents the machine from accepting nominal-3
  * 8 (INPUT) - inhibit 4 - HIGH prevents the machine from accepting nominal-4
  * 9 (OUTPUT) - the machine is busy
- * 10 (INPUT) - escrow control - if LOW, freezes accepted banknote and waits for further commands, HIGH accepts banknotes immediately
+ * 10 (INPUT) - escrow control - if LOW, freezes accepted banknote and waits for further commands, HIGH accepts banknotes immediately (connect to +5V)
  * 11-14 - unused
  * 15 - +12V DC power supply
  * 16 - ground
  * 
- * Connect Arduino GPIO pins to 1-10 pins and the ground of NV10, according to this mapping:
- * NV10 <-> Arduino
- *   1  <->  2
- *   2  <->  3
- *   3  <->  4
- *   4  <->  5
- *   5  <->  6
- *   6  <->  7
- *   7  <->  8
- *   8  <->  9
- *   9  <->  10
- *  10  <->  11
- *  16  <-> GND
- * In fact you can use any GPIO pin set.
+ * Connect Raspberry GPIO pins (through 3V3<->5V converter!) to 1-8 pins of NV10
+ * according to this mapping (we are using BCM pin coding):
+ * NV10 <-> Raspberry
+ *   1  <->  GPIO2
+ *   2  <->  GPIO3
+ *   3  <->  GPIO4
+ *   4  <->  GPIO17
+ *   5  <->  GPIO27
+ *   6  <->  GPIO22
+ *   7  <->  GPIO10
+ *   8  <->  GPIO9
+ * Pin 9 and 15 of NV10 should be grounded.
+ * Pi's ground should be connected with NV10's ground.
  */
 #define ACCEPTED_1 2
 #define ACCEPTED_2 3
 #define ACCEPTED_3 4
-#define ACCEPTED_4 5
-#define INHIBIT_1 6
-#define INHIBIT_2 7
-#define INHIBIT_3 8
+#define ACCEPTED_4 17
+#define INHIBIT_1 27
+#define INHIBIT_2 22
+#define INHIBIT_3 10
 #define INHIBIT_4 9
-#define MACHINE_BUSY 10
-//#define FREEZE_ESCROW 11
 
 byte ACCEPTED_PINS[] = {ACCEPTED_1, ACCEPTED_2, ACCEPTED_3, ACCEPTED_4};
 byte INHIBIT_PINS[] = {INHIBIT_1, INHIBIT_2, INHIBIT_3, INHIBIT_4};
@@ -62,16 +72,14 @@ enum Nominals{
   HUNDRET
 };
 
-// wait for pin 'pin_number' to be in state 'state'
+// wait for pin pin_number to be in state state
 bool wait_for(byte pin_number, byte state, bool timeout_allowed=true)
 {
-  Serial.print("Waiting for pin ");
-  Serial.print(pin_number);
-  Serial.println("...");
+  printf("Waiting for pin %d...\n", pin_number);
   int checks_needed = 5;
   int delay_between_checks = 10;
-  int stable_state_counter = checks_needed; // if pin pin_number happens to be in a state state iterations_needed times in a row with delay between checks delay_between_checks, we treat it as a stable state and return from the function
-  int timeout_counter = 1000; // 10s
+  int stable_state_counter = checks_needed; // if pin pin_number happens to be in a state state iterations_needed times 
+  int timeout_counter = 1000; // 10s        // in a row with delay between checks delay_between_checks, we treat it as a stable state and return from the function
   while(stable_state_counter && (!timeout_allowed || timeout_counter))
   {
     if(digitalRead(pin_number) == state)
@@ -84,47 +92,27 @@ bool wait_for(byte pin_number, byte state, bool timeout_allowed=true)
     }
     delay(delay_between_checks);
   }
-  Serial.print("Done waiting. Result: ");
-  Serial.println(stable_state_counter == 0 ? "GOOD" : "TIMEOUT");
+  printf("Done waiting. Result: ");
+  printf("%s", stable_state_counter == 0 ? "GOOD" : "TIMEOUT");
+  printf("\n");
   if(stable_state_counter == 0) return true; // stable state has been achieved
   else return false; // return false in case of timeout
 }
 
-void setup() {
-  Serial.begin(9600);
-  pinMode(ACCEPTED_1, INPUT_PULLUP);
-  pinMode(ACCEPTED_2, INPUT_PULLUP);
-  pinMode(ACCEPTED_3, INPUT_PULLUP);
-  pinMode(ACCEPTED_4, INPUT_PULLUP);
-  pinMode(INHIBIT_1, OUTPUT);
-  pinMode(INHIBIT_2, OUTPUT);
-  pinMode(INHIBIT_3, OUTPUT);
-  pinMode(INHIBIT_4, OUTPUT);
-  pinMode(MACHINE_BUSY, INPUT_PULLUP);
-  //pinMode(FREEZE_ESCROW, OUTPUT);
-
-  digitalWrite(INHIBIT_1, HIGH); // not accepting anything at first
-  digitalWrite(INHIBIT_2, HIGH);
-  digitalWrite(INHIBIT_3, HIGH);
-  digitalWrite(INHIBIT_4, HIGH);
-  //digitalWrite(FREEZE_ESCROW, HIGH);
-  
-  Serial.println("Pins all set up!");
-  wait_for(MACHINE_BUSY, HIGH, false); // if machine doesnt respond, throw an exception, wait till dead
-}
-
 bool pay(Nominals nominal)
 {
-  Serial.print("Initializing payment of ");
-  Serial.println(nominalsValues[nominal]);
-  Serial.println(nominal);
+  printf("Initializing payment of ");
+  printf("%s", nominalsValues[nominal]);
   digitalWrite(INHIBIT_PINS[nominal], LOW); // allow corresponding channel
   bool result = wait_for(ACCEPTED_PINS[nominal], LOW); // "if a note is recognised, the relevant channel line is set LOW for 100 +- 3 milliseconds."
   digitalWrite(INHIBIT_PINS[nominal], HIGH);
   return result;
 }
 
-void loop() {
+int main() {
   bool result = pay(FIFTY);
   Serial.println(result ? "\tSuccessfully paid." : "Error occured during payment.");
 }
+
+//gcc -Wall -o acceptor_test acceptor_test.c -lwiringPi
+//sudo ./acceptor_test
