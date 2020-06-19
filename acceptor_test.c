@@ -52,6 +52,9 @@ gpio=27,22,10,9=op,dh
  * Pin 9 and 15 of NV10 should be grounded.
  * Pi's ground should be connected with NV10's ground.
  */
+ 
+#include <wiringPi.h>
+ 
 #define ACCEPTED_1 2
 #define ACCEPTED_2 3
 #define ACCEPTED_3 4
@@ -109,6 +112,7 @@ int pay(int nominal)
 }
 
 int main() {
+  wiringPiSetupGpio();
   int result = pay(FIFTY);
   prtintf(result != 0 ? "\tSuccessfully paid." : "Error occured during payment.");
 }
