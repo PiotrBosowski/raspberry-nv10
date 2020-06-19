@@ -1,7 +1,6 @@
 /* 
  *
-
-before any use, add following lines to /boot/config.txt
+ * Before any use, add following lines to /boot/config.txt
 
 #setting input pins with pull up
 gpio=2,3,4,17=ip,pu
@@ -9,10 +8,10 @@ gpio=2,3,4,17=ip,pu
 #setting output pins with value high
 gpio=27,22,10,9=op,dh
 
-to make Pi configure its gpios during startup
-
- 
- Controlling NV10 Banknote Acceptor using Raspberry Pi 2B
+ * to make Pi configure its GPIOs during startup.
+ *
+ *
+ * Controlling NV10 Banknote Acceptor using Raspberry Pi 2B
  * reference: http://www.coinoperatorshop.com/media/products/manual/NV/NV10%20_Manual%20Englisch.pdf
  * 
  * NV10 interface: Parallel (all dipswitches should be DOWN)
@@ -62,9 +61,9 @@ to make Pi configure its gpios during startup
 #define INHIBIT_3 10
 #define INHIBIT_4 9
 
-byte ACCEPTED_PINS[] = {ACCEPTED_1, ACCEPTED_2, ACCEPTED_3, ACCEPTED_4};
-byte INHIBIT_PINS[] = {INHIBIT_1, INHIBIT_2, INHIBIT_3, INHIBIT_4};
-byte nominalsValues[] = {10, 20, 50, 100};
+int ACCEPTED_PINS[] = {ACCEPTED_1, ACCEPTED_2, ACCEPTED_3, ACCEPTED_4};
+int INHIBIT_PINS[] = {INHIBIT_1, INHIBIT_2, INHIBIT_3, INHIBIT_4};
+int nominalsValues[] = {10, 20, 50, 100};
 enum Nominals{
   TEN = 0,
   TWENTY,
@@ -73,7 +72,7 @@ enum Nominals{
 };
 
 // wait for pin pin_number to be in state state
-bool wait_for(byte pin_number, byte state, bool timeout_allowed=true)
+int wait_for(int pin_number, int state, int timeout_allowed=1)
 {
   printf("Waiting for pin %d...\n", pin_number);
   int checks_needed = 5;
@@ -99,19 +98,19 @@ bool wait_for(byte pin_number, byte state, bool timeout_allowed=true)
   else return false; // return false in case of timeout
 }
 
-bool pay(Nominals nominal)
+int pay(Nominals nominal)
 {
   printf("Initializing payment of ");
   printf("%s", nominalsValues[nominal]);
   digitalWrite(INHIBIT_PINS[nominal], LOW); // allow corresponding channel
-  bool result = wait_for(ACCEPTED_PINS[nominal], LOW); // "if a note is recognised, the relevant channel line is set LOW for 100 +- 3 milliseconds."
+  int result = wait_for(ACCEPTED_PINS[nominal], LOW); // "if a note is recognised, the relevant channel line is set LOW for 100 +- 3 milliseconds."
   digitalWrite(INHIBIT_PINS[nominal], HIGH);
   return result;
 }
 
 int main() {
-  bool result = pay(FIFTY);
-  Serial.println(result ? "\tSuccessfully paid." : "Error occured during payment.");
+  int result = pay(FIFTY);
+  prtintf(result != 0 ? "\tSuccessfully paid." : "Error occured during payment.");
 }
 
 //gcc -Wall -o acceptor_test acceptor_test.c -lwiringPi
