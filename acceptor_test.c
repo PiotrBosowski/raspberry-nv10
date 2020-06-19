@@ -115,7 +115,7 @@ int pay(int nominal)
 int main() {
   wiringPiSetupGpio();
   int result = pay(FIFTY);
-  prtintf(result != 0 ? "\tSuccessfully paid." : "Error occured during payment.");
+  printf(result != 0 ? "\tSuccessfully paid." : "Error occured during payment.");
 }
 
 //gcc -Wall -o acceptor_test acceptor_test.c -lwiringPi
