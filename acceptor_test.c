@@ -104,8 +104,7 @@ int wait_for(int pin_number, int state, int timeout_allowed)
 
 int pay(int nominal)
 {
-  printf("Initializing payment of ");
-  printf("%d", nominalsValues[nominal]);
+  printf("Initializing payment of %s PLN\n", nominalsValues[nominal]);
   digitalWrite(INHIBIT_PINS[nominal], LOW); // allow corresponding channel
   int result = wait_for(ACCEPTED_PINS[nominal], LOW, 1); // "if a note is recognised, the relevant channel line is set LOW for 100 +- 3 milliseconds."
   digitalWrite(INHIBIT_PINS[nominal], HIGH);
